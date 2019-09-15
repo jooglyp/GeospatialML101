@@ -16,7 +16,9 @@ __data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), 'c
 
 def data_generation():
     out_dir = os.path.join(__folder__, "..", "outputs")
+    print(out_dir)
     data_generator = model.GenerateCovariates(os.path.join(out_dir, "Hex_Values_Points.shp"))
+    hex_point_data = data_generator.generate_covariates()
     return None
 
 

@@ -189,12 +189,10 @@ class Hexify:
         hex_avgs = {}
         for attribute in attributes:
             point_hex_avg = points_in_hexes.groupby(['polyid'])[attribute].mean()
-            point_hex_avg_rc = pd.DataFrame({attribute + "_avg": point_hex_avg}).reset_index()
+            point_hex_avg_rc = pd.DataFrame({attribute.split("_")[1] + "avg": point_hex_avg}).reset_index()
             point_hex_avg_rc.set_index('polyid', inplace=True)
-            hex_avgs[attribute + "_avg"] = point_hex_avg_rc
-
-        LOGGER.info(hex_avgs)
-
+            LOGGER.info(point_hex_avg_rc)
+            hex_avgs[attribute.split("_")[1] + "avg"] = point_hex_avg_rc
         for item in hex_avgs.items():
             hex_grid = pd.merge(hex_grid, item[1], left_on='polyid', right_index=True,
                                 how='left', sort=False)

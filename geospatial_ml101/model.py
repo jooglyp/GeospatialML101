@@ -1,7 +1,11 @@
 """Generates seasonal statistics from data."""
 
+import logging
+
 import geopandas
 import pandas
+
+LOGGER = logging.getLogger(__name__)
 
 
 class GenerateCovariates:
@@ -21,7 +25,8 @@ class GenerateCovariates:
         self.wgs84 = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
         self.path = hex_path
-        self.hex_attributes = geopandas.GeoDataFrame.from_file(hex_path)
+        self.hex_point_layer = geopandas.GeoDataFrame.from_file(hex_path)
 
-    def __stuff__(self):
+    def generate_covariates(self):
+        print(self.hex_point_layer)
         return None
