@@ -63,6 +63,7 @@ import qgis.core
 https://docs.python.org/3/install/index.html#modifying-python-s-search-path
 
 #--------------#
+# Alternative Instructions for integrating QGIS with Python Venv:
 
 7) Location of key QGIS Files:
 a) QGIS local installation:

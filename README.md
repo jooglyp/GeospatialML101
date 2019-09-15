@@ -25,7 +25,7 @@ download this in. Please note the version number, you can check if there are
 more recent versions in the download page here:
  http://download.osgeo.org/libspatialindex/ . 
 
-Now enter the following into your terminal (cd to project directory):
+Now enter the following into your terminal (cd to project directory first!):
 
 curl -L http://download.osgeo.org/libspatialindex/spatialindex-src-1.8.5.tar.gz | tar xz
 cd spatialindex-src-1.8.5

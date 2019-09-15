@@ -25,7 +25,8 @@ class GeoDataConstructor:
         LOGGER.info("Concatenating Dataframes")
         datas = functools.reduce(
             lambda left, right: pandas.merge(
-                left, right, left_index=True, right_index=True, how="outer"
+                left, right[right.columns.difference(["latitude", "longitude"])],
+                left_index=True, right_index=True, how="outer"
             ),
             self.geodata,
         )
