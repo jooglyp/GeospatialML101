@@ -24,13 +24,10 @@ class Hexify:
         PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-96.0],\
         PARAMETER["Standard_Parallel_1",29.5],PARAMETER["Standard_Parallel_2",45.5],\
         PARAMETER["Latitude_Of_Origin",37.5],UNIT["Meter",1.0]]'
-
         self.wgs84_prj = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],\
         PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]'
-
         self.us_albers_equal_area = "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 \
         +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
-
         self.wgs84 = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
         self.output_dir = output_dir
@@ -128,7 +125,7 @@ class Hexify:
             shp_writer.record(*[str(in_id)])
             shp_writer.poly([geom])
 
-    def create_hex_grid_new(self, hex_area, name: str, saveout=True):
+    def create_hex_grid(self, hex_area, name: str, saveout=True):
         """
 
         :param hex_area: should be around 5000-8000 meters squared
@@ -172,7 +169,7 @@ class Hexify:
                                   name, hex_area, self.us_albers_equal_area_prj)
         return hex_gdf
 
-    def point_to_avg_hex_scores(self, points, hex_grid, saveout=False):
+    def point_to_avg_hex_scores(self, points, hex_grid, saveout=True):
         """
 
         :param points: points to perform aggregations on

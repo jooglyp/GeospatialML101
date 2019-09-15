@@ -14,13 +14,7 @@ if __name__ in ["__main__", "builtins"]:
         install_requires=[
             "numpy",
             "pandas",
-            "dask",
-            "dask-ml",
-            "scikit-learn",
-            "dask_xgboost",
-            "dask-searchcv",
             "fsspec",
-            "imbalanced-learn",
             "seaborn",
             "graphviz",
             "pysal",

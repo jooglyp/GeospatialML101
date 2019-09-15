@@ -55,9 +55,9 @@ def data_processing():
 
 def simplify_data(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
     out_dir = os.path.join(__folder__, "..", "outputs")
-    default_hex_size = 60000
+    default_hex_size = 40000
     grid_obj = hexes.Hexify(gdf, out_dir)
-    hex_grid = grid_obj.create_hex_grid_new(default_hex_size, "atlantic_grid", saveout=True)
+    hex_grid = grid_obj.create_hex_grid(default_hex_size, "atlantic_grid", saveout=True)
     print(hex_grid)
     hex_attributes = grid_obj.point_to_avg_hex_scores(gdf, hex_grid)
     return hex_attributes
