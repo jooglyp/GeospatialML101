@@ -5,7 +5,7 @@ import os
 
 import geopandas as gpd
 import shapely
-from shapely.geometry import Polygon, box
+from shapely.geometry import Polygon, Point, box
 import math
 import shapefile
 import pandas as pd
@@ -16,7 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 class Hexify:
     def __init__(self, gdf: gpd.GeoDataFrame, output_dir):
-        # Designate commonly used projection systems as global attributes:
+        # Designate commonly used projection systems as class attributes:
         self.us_albers_equal_area_prj = 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",\
         GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",\
         SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],\
@@ -191,7 +191,6 @@ class Hexify:
             point_hex_avg = points_in_hexes.groupby(['polyid'])[attribute].mean()
             point_hex_avg_rc = pd.DataFrame({attribute + "_avg": point_hex_avg}).reset_index()
             point_hex_avg_rc.set_index('polyid', inplace=True)
-            print(point_hex_avg_rc)
             hex_avgs[attribute + "_avg"] = point_hex_avg_rc
 
         LOGGER.info(hex_avgs)
@@ -199,9 +198,29 @@ class Hexify:
         for item in hex_avgs.items():
             hex_grid = pd.merge(hex_grid, item[1], left_on='polyid', right_index=True,
                                 how='left', sort=False)
-        print(hex_grid)
-        print(hex_grid.columns)
         if saveout:
             out_dir = os.path.join(self.output_dir, "Hex_Values.shp")
+            # note importing in qgis seems to screw up the column names.
             hex_grid.to_file(out_dir)
         return hex_grid
+
+    def hex_centroid_values(self, hex_grid: gpd.GeoDataFrame, saveout=True) -> gpd.geodataframe:
+        cg_long = hex_grid.geometry.centroid.x
+        cg_lat = hex_grid.geometry.centroid.y
+        cg_df = pd.DataFrame(
+            {
+                'Latitude': list(cg_lat),
+                'Longitude': list(cg_long)
+            }
+        )
+        cg_df['Coordinates'] = list(zip(cg_df.Longitude, cg_df.Latitude))
+        cg_df['Coordinates'] = cg_df['Coordinates'].apply(Point)
+        cg_gdf = gpd.GeoDataFrame(cg_df, geometry='Coordinates')
+        # cg_gdf = gpd.GeoDataFrame(cg_df, geometry=gpd.points_from_xy(cg_df.Longitude, cg_df.Latitude))
+        if cg_gdf.crs != self.us_albers_equal_area:
+            print("converting crs of points layer")
+            hex_grid.to_crs(self.us_albers_equal_area, inplace=True)
+        if saveout:
+            out_dir = os.path.join(self.output_dir, "Hex_Values_Points.shp")
+            hex_grid.to_file(out_dir)
+        return cg_gdf

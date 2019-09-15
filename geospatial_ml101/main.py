@@ -15,6 +15,8 @@ __data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), 'c
 
 
 def data_generation():
+    out_dir = os.path.join(__folder__, "..", "outputs")
+    data_generator = model.GenerateCovariates(os.path.join(out_dir, "Hex_Values_Points.shp"))
     return None
 
 
@@ -31,12 +33,13 @@ def data_processing():
     geo_files = scan_data()
     i = 0
     for file in geo_files.items():
-        if i == 5:
+        if i == 3:
             break
         with open(file[1], "r") as fileobj:
             flattened_dict = flatten_data(fileobj)
             df = pandas.DataFrame(flattened_dict)
             name = "chlor_" + str(file[0].split(".")[0].split("_")[2])
+            print(name)
             df.rename(columns={"value": name}, inplace=True)
             df_list.append(df)
             i += 1
@@ -49,18 +52,19 @@ def data_processing():
 
     del concatenated_df
     del df_list
-    # write_data(gdf)
-    hex_attributes = simplify_data(gdf)
+    hex_attribute_points = simplify_data(gdf)
 
 
 def simplify_data(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
     out_dir = os.path.join(__folder__, "..", "outputs")
-    default_hex_size = 40000
+    # default_hex_size = 40000
+    default_hex_size = 100000  # testing only
     grid_obj = hexes.Hexify(gdf, out_dir)
     hex_grid = grid_obj.create_hex_grid(default_hex_size, "atlantic_grid", saveout=True)
-    print(hex_grid)
+    LOGGER.info(hex_grid)
     hex_attributes = grid_obj.point_to_avg_hex_scores(gdf, hex_grid)
-    return hex_attributes
+    hex_attribute_points = grid_obj.hex_centroid_values(hex_attributes)
+    return hex_attribute_points
 
 
 def write_data(gdf: geopandas.GeoDataFrame):
