@@ -27,6 +27,7 @@ if __name__ in ["__main__", "builtins"]:
             "geopandas",
             "shapely",
             "geopy",
+            "shapefile",
             "jupyterlab"
         ],
         entry_points={"console_scripts": ["data_processing=geospatial_ml101.main:data_processing",

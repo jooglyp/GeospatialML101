@@ -48,7 +48,7 @@ def data_processing():
 def write_data(gdf: geopandas.GeoDataFrame):
     """Writes data to directory as shapefile for manual inspection."""
     out_dir = os.path.join(__folder__, "..", "outputs", "chlor_timeseries.shp")
-    gdf.to_file(out_dir)
+    gdf.to_file(out_dir, driver='ESRI Shapefile')
 
 
 def scan_data() -> dict:
