@@ -1,12 +1,12 @@
-If using Pop, which is Ubuntu 18.04, addthe long term release repo found here
+If using Pop (Ubuntu Disco), add the long term release repo found here
 https://qgis.org/en/site/forusers/alldownloads.html#debian-ubuntu
 to:
 sudo nano /etc/apt/sources.list
 
 In other words,
 add this:
-deb http://qgis.org/ubuntu-ltr bionic main
-deb-src http://qgis.org/ubuntu-ltr bionic main
+deb http://qgis.org/ubuntu-ltr <release name> main
+deb-src http://qgis.org/ubuntu-ltr <release name> main
 to the .list file
 
 then sudo apt-get update

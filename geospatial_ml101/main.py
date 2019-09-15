@@ -2,15 +2,17 @@
 import logging
 import os
 
-import numpy
+import csv
+import pandas
 import geopandas
+from shapely.geometry import Point
 
 from . import log, model
 
 LOGGER = logging.getLogger(__name__)
 
 __folder__ = os.path.dirname(os.path.realpath(__file__))
-__data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), '..', 'chlor_a'))
+__data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), 'chlor_a/'))
 
 
 def main():
@@ -18,22 +20,51 @@ def main():
 
     # Assignment Simulation:
     LOGGER.info("Loading data from disk...")
+    geo_files = {}
+    for file in os.listdir(__data_folder__):
+        if file.endswith(".csv"):
+            geo_files[file] = os.path.join(__data_folder__, file)
+    print(geo_files)
 
-    for layer in __data_folder__:
-        print(layer)
+    for file in geo_files.items():
+        print(file)
+        with open(file[1], "r") as fileobj:
+            flattened_dict = flatten_data(fileobj)
+            df = pandas.DataFrame(flattened_dict)
+            print(df)
+            gdf = geopandas.GeoDataFrame(
+                df.drop(['latitude', 'longitude'], axis=1),
+                crs={'init': 'epsg:4326'},
+                geometry=[Point(xy) for xy in zip(df.latitude, df.longitude)])
+            print(gdf)
+            out_dir = os.path.join(__folder__, "Test.shp")
+            gdf.to_file(out_dir)
+            break
 
-    return
 
-    with open("/tmp/data.csv", "r") as fileobj:
-        raw_data = geopandas.read_csv(fileobj)
-        X = raw_data[raw_data.columns.difference(["is_bad"])]
-        y = numpy.array(raw_data[["is_bad"]])
+def flatten_data(csvfile) -> dict:
+    """
 
-    xgboost_model = model.XGBoostModel()
+    :param fileobj: csv file handled in context.
+    :return: transformed csv file to dictionary that can be read-into geopandas.
+    """
+    print("================")
+    df = pandas.read_csv(csvfile)
+    # latitudes = list(df.columns[1:])
+    # print(latitudes)
+    # longitudes = list(df[df.columns[0]])
+    # print(longitudes)
+    # print("================")
 
-    LOGGER.info(xgboost_model.evaluate(X, y))
-    # Assuming X is a pandas dataframe...
-    # TODO: Make note that dask is not talking to local threads very well. Not an actual error.
-    LOGGER.info(
-        xgboost_model.predict_proba(geopandas.DataFrame(xgboost_model.model.X.compute()))
-    )
+    transformed_data = {'latitude': [], 'longitude': [], 'value': []}
+    for x in df.iterrows():
+        for i, pixel in enumerate(x[1].iteritems()):
+            if i == 0:
+                longitude = pixel[1]
+                print(longitude)
+                continue
+            else:
+                transformed_data['latitude'].append(float(pixel[0]))
+                transformed_data['longitude'].append(float(longitude))
+                transformed_data['value'].append(float(pixel[1]))
+    return transformed_data
