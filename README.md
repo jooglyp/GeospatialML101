@@ -55,3 +55,15 @@ python3.7 -m venv .pyenv  # Install Python 3.7 virtual environment
 # Using this repository as the current working directory
 .pyenv/bin/pip-compile -vvv --upgrade --dry-run setup.py
 ```
+
+## Add Data to project directory under dir chlor_a.
+```bash
+geospatial_ml101/chlor_a
+```
+
+## Run endpoints
+```
+# see setup.py for endpoints.
+.pyenv/bin/data_processing
+.pyenv/bin/data_generation
+```
