@@ -6,7 +6,7 @@ import pandas
 import geopandas
 from shapely.geometry import Point
 
-from . import log, model, utilities
+from . import log, model, utilities, hexes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,26 +29,44 @@ def data_processing():
     LOGGER.info("Loading data from disk...")
     df_list = []
     geo_files = scan_data()
+    i = 0
     for file in geo_files.items():
+        if i == 5:
+            break
         with open(file[1], "r") as fileobj:
             flattened_dict = flatten_data(fileobj)
             df = pandas.DataFrame(flattened_dict)
             name = "chlor_" + str(file[0].split(".")[0].split("_")[2])
             df.rename(columns={"value": name}, inplace=True)
             df_list.append(df)
+            i += 1
     geoconstructor = utilities.GeoDataConstructor(df_list)
     concatenated_df = geoconstructor._concatenate_dataframes()
     gdf = geopandas.GeoDataFrame(
         concatenated_df.drop(['latitude', 'longitude'], axis=1),
         crs={'init': 'epsg:4326'},
         geometry=[Point(xy) for xy in zip(concatenated_df.latitude, concatenated_df.longitude)])
-    write_data(gdf)
+
+    del concatenated_df
+    del df_list
+    # write_data(gdf)
+    hex_attributes = simplify_data(gdf)
+
+
+def simplify_data(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
+    out_dir = os.path.join(__folder__, "..", "outputs")
+    default_hex_size = 60000
+    grid_obj = hexes.Hexify(gdf, out_dir)
+    hex_grid = grid_obj.create_hex_grid_new(default_hex_size, "atlantic_grid", saveout=True)
+    print(hex_grid)
+    hex_attributes = grid_obj.point_to_avg_hex_scores(gdf, hex_grid)
+    return hex_attributes
 
 
 def write_data(gdf: geopandas.GeoDataFrame):
     """Writes data to directory as shapefile for manual inspection."""
-    out_dir = os.path.join(__folder__, "..", "outputs", "chlor_timeseries.shp")
-    gdf.to_file(out_dir, driver='ESRI Shapefile')
+    out_dir = os.path.join(__folder__, "..", "outputs", "chlor_timeseries.gpkg")
+    gdf.to_file(out_dir, driver='GPKG')
 
 
 def scan_data() -> dict:

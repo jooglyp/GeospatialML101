@@ -1,12 +1,21 @@
+"""Module for creating a hexgrid and aggregating point data within that hexgrid."""
+
+import logging
+import os
 
 import geopandas as gpd
 import shapely
-from shapely.geometry import Polygon, box, asPolygon, asPoint, MultiPoint, shape, base
+from shapely.geometry import Polygon, box
 import math
 import shapefile
+import pandas as pd
+import numpy as np
+
+LOGGER = logging.getLogger(__name__)
+
 
 class Hexify:
-    def __init__(self, region_dir, point_dir, output_dir):
+    def __init__(self, gdf: gpd.GeoDataFrame, output_dir):
         # Designate commonly used projection systems as global attributes:
         self.us_albers_equal_area_prj = 'PROJCS["USA_Contiguous_Albers_Equal_Area_Conic",\
         GEOGCS["GCS_North_American_1983",DATUM["D_North_American_1983",\
@@ -25,15 +34,7 @@ class Hexify:
         self.wgs84 = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 
         self.output_dir = output_dir
-
-        self.region_dir = region_dir
-        self.region_shp = gpd.GeoDataFrame.from_file(region_dir)
-        if self.region_shp.crs != self.us_albers_equal_area:
-            print("converting crs of region layer")
-            self.region_shp.to_crs(self.us_albers_equal_area, inplace=True)
-
-        self.point_dir = point_dir
-        self.points_shp = gpd.GeoDataFrame.from_file(point_dir)
+        self.points_shp = gdf
         self.points_shp = self.points_shp[self.points_shp.geometry.notnull()]
         if self.points_shp.crs != self.us_albers_equal_area:
             print("converting crs of points layer")
@@ -111,52 +112,23 @@ class Hexify:
             row += 1
         return polygons
 
-    def geoms_to_hex_shp(self, in_geoms, out_shp, projection):
-        # algorithm pulled from here:
-        # https://github.com/DigitalGlobe/gbdxtools/blob/master/gbdxtools/catalog_search_aoi.py
-        # pip install pyshp
-
-        prj_name = '{}.prj'.format(out_shp.split('.')[0])
+    def geoms_to_hex_shp(self, in_geoms, name: str, hex_area: float, projection):
+        prj_name = '{}.prj'.format('{}/{}_{}_Hex'.format(self.output_dir, name, hex_area))
         with open(prj_name, 'w') as prj:
             prj.write(projection)
-        shp_writer = shapefile.Writer(shapefile.POLYGON)
+        shp_writer = shapefile.Writer(os.path.join(self.output_dir, "HexGrid"))
 
         out_fields = [
             ['id', 'N']
         ]
-        # out_fields_names = [x[0] for x in out_fields]
         for name in out_fields:
             shp_writer.field(*name)
 
         for in_id, geom in enumerate(in_geoms, start=1):
-            print(in_id)
-            print(geom)
             shp_writer.record(*[str(in_id)])
-            shp_writer.poly(parts=[geom])
-        shp_writer.save(out_shp)
+            shp_writer.poly([geom])
 
-    # ------------------------------------------------------------------------------------------------
-    def create_subpoints(self, points, region, us_albers_equal_area):
-        """
-        a spatial join function for points and a region shapefile
-        :param points: point shapefile
-        :param region: polygon shapefile
-        :param us_albers_equal_area: projection
-        :return: a spatially joined gdf
-        """
-        sub_gdf = points.copy()
-        if sub_gdf.crs != us_albers_equal_area:
-            print("converting crs of points layer")
-            sub_gdf.to_crs(us_albers_equal_area, inplace=True)
-
-        regions_gdf = region.copy()
-
-        points_polgon_join = gpd.sjoin(sub_gdf, regions_gdf, how='left')
-
-        return points_polgon_join
-
-    # ------------------------------------------------------------------------------------------------
-    def create_hex_grid_new(self, hex_area, overlap, saveout=False):
+    def create_hex_grid_new(self, hex_area, name: str, saveout=True):
         """
 
         :param hex_area: should be around 5000-8000 meters squared
@@ -164,59 +136,75 @@ class Hexify:
         :return: a hex-grid stored in a dictionary
         """
 
-        hex_region_field = 'NAME'
         # hex_area = 86602540.378  # 86602540.378 is the area of a hexagon with radius = 5000 meters
+        bbox = self.points_shp['geometry'].total_bounds
 
-        points_region = self.create_subpoints(self.points_shp, self.region_shp, self.us_albers_equal_area)
-        s_join_n = points_region.dropna(subset=['NAME'])
-        # For each gdf in self.sample_points_region, determine the bounding box extent, and generate a hex grid
-        all_bboxes = s_join_n.groupby(hex_region_field)['geometry'].agg(lambda g: list(g.total_bounds))
-        # gpd update: https://stackoverflow.com/questions/27439023/pandas-groupby-agg-function-does-not-reduce
-        # https://stackoverflow.com/questions/39840546/must-produce-aggregated-value-i-swear-that-i-am
+        geom_box = box(*bbox)
+        extent_area = geom_box.area
 
-        hex_list = {}
+        if extent_area < hex_area:  # 86602540.378 is the area of a hexagon with radius = 5000 meters
+            # begin rescaling the extent_area
+            # (1) The following condition, box(a,b,c,d).area/box(w,s,e,n).area = xfact*yfact.
+            # (2) want to know --> (86602540.378*1.1)/box(w,s,e,n).area --> sqrt(*)
+            req_growth = (hex_area * 1.1) / extent_area
+            scale_factor = req_growth ** 0.5
+            nshp_bounds = shapely.affinity.scale(geom_box, xfact=scale_factor, yfact=scale_factor).bounds
+            LOGGER.info(nshp_bounds)
+            # obtain new bounds
+            bbox = nshp_bounds
 
-        for i, b in enumerate(all_bboxes.iteritems()):
-            name = b[0]
-            print(name)
-            geom = b[1]
-            print(geom)
-            geom_box = box(*geom)
-            print(geom_box)
-            extent_area = geom_box.area
-            print(extent_area)
+        # # # Create the hexgrid # # #
+        w, s, e, n = bbox
+        vertices = self.calculate_polygons(w, s, e, n, hex_area)  # 5000 meter radius (UTM)
 
-            if extent_area < hex_area:  # 86602540.378 is the area of a hexagon with radius = 5000 meters
-                # begin rescaling the extent_area
-                # (1) The following condition, box(a,b,c,d).area/box(w,s,e,n).area = xfact*yfact.
-                # (2) want to know --> (86602540.378*1.1)/box(w,s,e,n).area --> sqrt(*)
-                req_growth = (hex_area * 1.1) / extent_area
-                scale_factor = req_growth ** 0.5
-                nshp_bounds = shapely.affinity.scale(geom_box, xfact=scale_factor, yfact=scale_factor).bounds
-                # obtain new bounds
-                geom = nshp_bounds
+        # Create the hex geodataframe
+        v_dict = {ndx: Polygon(v) for ndx, v in enumerate(vertices)}
+        hex_gdf = gpd.GeoDataFrame.from_dict({'geometry': v_dict})
+        hex_gdf.crs = self.points_shp.crs
+        hex_gdf = hex_gdf.reset_index().rename(columns={'index': 'polyid'})
 
-            # # # Create the fishnet # # #
-            w, s, e, n = geom
-            vertices = self.calculate_polygons(w, s, e, n, hex_area)  # 5000 meter radius (UTM)
+        # store in a zipped list (file_name will keep track of which hex-region is being stored)
+        LOGGER.info("Generating hex grid for: %s" % name)
+        LOGGER.info("================================")
+        # write hex to shapefile for debugging
+        if saveout:
+            self.geoms_to_hex_shp([list(s.exterior.coords) for s in hex_gdf['geometry'].tolist()],
+                                  name, hex_area, self.us_albers_equal_area_prj)
+        return hex_gdf
 
-            # Create the hex geodataframe
-            v_dict = {ndx: Polygon(v) for ndx, v in enumerate(vertices)}
-            hex_gdf = gpd.GeoDataFrame.from_dict({'geometry': v_dict})
-            hex_gdf.crs = s_join_n.crs
-            hex_gdf = hex_gdf.reset_index().rename(columns={'index': 'polyid'})
-            hex_gdf = hex_gdf[
-                hex_gdf.intersects(self.region_shp.geometry[self.region_shp[self.region_shp['NAME'] == name].index[0]])]
-            # print(hex_gdf)
+    def point_to_avg_hex_scores(self, points, hex_grid, saveout=False):
+        """
 
-            # store in a zipped list (file_name will keep track of which hex-region is being stored)
-            hex_list[name] = hex_gdf
-            print("Generating hex grid for: %s" % name)
-            print("================================")
-            # write hex to shapefile for debugging
-            if saveout == True:
-                self.geoms_to_hex_shp([list(s.exterior.coords) for s in hex_list[name]['geometry'].tolist()], \
-                                      '{}/{}_{}_{}p_Hex.shp'.format(self.output_dir, name, hex_area, overlap),
-                                      self.us_albers_equal_area_prj)
-            del hex_gdf
-        return hex_list
+        :param points: points to perform aggregations on
+        :return: a new hex-list with a z-score
+        """
+
+        if hex_grid.crs != self.us_albers_equal_area:
+            hex_grid.to_crs(self.us_albers_equal_area, inplace=True)
+
+        if points.crs != self.us_albers_equal_area:
+            points.to_crs(self.us_albers_equal_area, inplace=True)
+
+        points_in_hexes = gpd.sjoin(points, hex_grid, how='left')
+        # Perform Math:
+        attributes = points_in_hexes.columns
+        attributes = [i for i in attributes if i.startswith('chlor')]
+        hex_avgs = {}
+        for attribute in attributes:
+            point_hex_avg = points_in_hexes.groupby(['polyid'])[attribute].mean()
+            point_hex_avg_rc = pd.DataFrame({attribute + "_avg": point_hex_avg}).reset_index()
+            point_hex_avg_rc.set_index('polyid', inplace=True)
+            print(point_hex_avg_rc)
+            hex_avgs[attribute + "_avg"] = point_hex_avg_rc
+
+        LOGGER.info(hex_avgs)
+
+        for item in hex_avgs.items():
+            hex_grid = pd.merge(hex_grid, item[1], left_on='polyid', right_index=True,
+                                how='left', sort=False)
+        print(hex_grid)
+        print(hex_grid.columns)
+        if saveout:
+            out_dir = os.path.join(self.output_dir, "Hex_Values.shp")
+            hex_grid.to_file(out_dir)
+        return hex_grid
