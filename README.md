@@ -11,7 +11,7 @@ main directory, execute the following procedure.
 https://github.com/libspatialindex/libspatialindex/wiki/1.-Getting-Started
 
 This tutorial will help you to get started with libspatialindex using C++ on linux. 
-The following code is run on Ubuntu 12. If you are using windows the installation 
+The following code is run on Ubuntu Disco. If you are using windows the installation 
 may be different. First install some prerequisites please enter the following into 
 terminal. You may very well already have these installed.
 
@@ -25,7 +25,7 @@ download this in. Please note the version number, you can check if there are
 more recent versions in the download page here:
  http://download.osgeo.org/libspatialindex/ . 
 
-Now enter the following into your terminal:
+Now enter the following into your terminal (cd to project directory first!):
 
 curl -L http://download.osgeo.org/libspatialindex/spatialindex-src-1.8.5.tar.gz | tar xz
 cd spatialindex-src-1.8.5
@@ -54,4 +54,16 @@ python3.7 -m venv .pyenv  # Install Python 3.7 virtual environment
 ```bash
 # Using this repository as the current working directory
 .pyenv/bin/pip-compile -vvv --upgrade --dry-run setup.py
+```
+
+## Add Data to project directory under dir chlor_a.
+```bash
+geospatial_ml101/chlor_a
+```
+
+## Run endpoints
+```
+# see setup.py for endpoints.
+.pyenv/bin/data_processing
+.pyenv/bin/data_generation
 ```

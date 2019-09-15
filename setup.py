@@ -26,7 +26,9 @@ if __name__ in ["__main__", "builtins"]:
             "pysal",
             "geopandas",
             "shapely",
-            "geopy"
+            "geopy",
+            "jupyterlab"
         ],
-        entry_points={"console_scripts": ["geospatial_ml101=geospatial_ml101.main:main"]},
+        entry_points={"console_scripts": ["data_processing=geospatial_ml101.main:data_processing",
+                                          "data_generation=geospatial_ml101.main:data_generation"]},
     )

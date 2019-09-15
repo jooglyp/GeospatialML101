@@ -1,0 +1,3 @@
+```
+Run jupyterlab with .pyenv/bin/jupyter-lab after completing setup as instructed in README.md
+```

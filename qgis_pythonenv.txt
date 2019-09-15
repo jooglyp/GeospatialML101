@@ -1,0 +1,108 @@
+If using Pop (Ubuntu Disco), add the long term release repo found here
+https://qgis.org/en/site/forusers/alldownloads.html#debian-ubuntu
+to:
+sudo nano /etc/apt/sources.list
+
+In other words,
+add this:
+deb http://qgis.org/ubuntu-ltr <release name> main
+deb-src http://qgis.org/ubuntu-ltr <release name> main
+to the .list file
+
+# Add qgis.org repository public key and add key to apt.
+# (see https://qgis.org/en/site/forusers/alldownloads.html#debian-ubuntu)
+then sudo apt-get update
+
+and then,
+sudo apt-get install qgis python-qgis qgis-plugin-grass
+
+0) may have issue with SIP module. If so, update ~/.bash_profile with:
+
+PYTHONPATH='/usr/share/qgis/python'
+export PYTHONPATH
+
+LD_LIBRARY_PATH='./usr/lib'
+export LD_LIBRARY_PATH
+
+https://www.digitalocean.com/community/tutorials/how-to-read-and-set-environmental-and-shell-variables-on-a-linux-vps
+
+1) QGIS local installation:
+/usr/share/qgis
+
+2) QGIS algs:
+/usr/share/qgis/python/plugins/processing/algs/qgis
+
+3) QGIS processing modules (e.g. grass and gdal):
+~/.local/share/QGIS/QGIS3/profiles/default/QGIS
+
+4) grass7 module:
+~/.grass7
+
+5) find python path of qgis modules via the following:
+a) bash qgis
+b) follow instructions here: https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/intro.html#running-custom-applications
+--> in qgis python console:
+c) import sys; print(sys.version) 
+--> yields:
+/usr/lib/python3/dist-packages/qgis
+d) turns out this path is a python3 path (system level python3)
+
+6) we want to add the python3 system level path of dist-packages/qgis
+to a venv path:
+https://stackoverflow.com/questions/10738919/how-do-i-add-a-path-to-pythonpath-in-virtualenv
+a) go to py36env(wherever this is)/pyvenv.cfg    # this is a config file
+b) go to py36env/lib/python3.6/site-packages
+c) add a qgis.pth file to this directory with the following anywhere within:
+/usr/lib/python3/dist-packages/
+d) source into the venv and do the following:
+import sys
+sys.path
+# you should see the newly entered .pth placed in site-packages
+import qgis.core
+# vuala
+https://docs.python.org/3/install/index.html#modifying-python-s-search-path
+
+#--------------#
+# Alternative Instructions for integrating QGIS with Python Venv:
+
+7) Location of key QGIS Files:
+a) QGIS local installation:
+/usr/share/qgis
+b) QGIS algs:
+/usr/share/qgis/python/plugins/processing/algs/qgis
+
+8) find python path of qgis modules via the following:
+a) bash qgis
+b) follow instructions here: https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/intro.html#running-custom-applications
+--> in qgis python console:
+c) import sys; print(sys.version)
+--> yields:
+/usr/lib/python3/dist-packages/qgis
+d) turns out this path is a python3 path (system level python3)
+
+9) Create a python virtual env
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt install python3.7
+
+python3.7 -m venv .pyenv
+
+10) we want to add the python3 system level path of dist-packages/qgis
+to a venv path:
+https://stackoverflow.com/questions/10738919/how-do-i-add-a-path-to-pythonpath-in-virtualenv
+a) go to .pyenv(wherever this is)/pyvenv.cfg    # this is a config file with your basic pointers. Just fyi.
+b) go to .pyenv/lib/python3.7/site-packages  # use nautilus $PWD to get here quickly
+c) add a qgis.pth file to this directory with the following anywhere within:
+/usr/lib/python3/dist-packages/
+d) add a processing.pth file to this directory with the following anywhere within:
+/usr/share/qgis/python/plugins
+d) source into the venv and do the following: (source .pyenv/bin/activate)
+python3.7
+import sys
+sys.path
+# you should see the newly entered .pth placed in site-packages
+import qgis.core
+# vuala
+https://docs.python.org/3/install/index.html#modifying-python-s-search-path
+
