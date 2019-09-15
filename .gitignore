@@ -13,5 +13,4 @@ chlor_a/*
 geospatial_ml101.egg-info/*
 spatialindex-src-1.8.5
 
-Test.shp
-geospatial_ml101/Test.shp
+outputs/*
