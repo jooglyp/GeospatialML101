@@ -10,3 +10,4 @@ __pycache__
 *.egg-info
 dask-worker-space/*
 chlor_a/*
+geospatial_ml101.egg-info/*
