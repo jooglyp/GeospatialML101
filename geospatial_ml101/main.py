@@ -2,7 +2,6 @@
 import logging
 import os
 
-import csv
 import pandas
 import geopandas
 from shapely.geometry import Point
@@ -50,11 +49,6 @@ def flatten_data(csvfile) -> dict:
     """
     print("================")
     df = pandas.read_csv(csvfile)
-    # latitudes = list(df.columns[1:])
-    # print(latitudes)
-    # longitudes = list(df[df.columns[0]])
-    # print(longitudes)
-    # print("================")
 
     transformed_data = {'latitude': [], 'longitude': [], 'value': []}
     for x in df.iterrows():

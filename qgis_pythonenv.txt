@@ -9,6 +9,8 @@ deb http://qgis.org/ubuntu-ltr <release name> main
 deb-src http://qgis.org/ubuntu-ltr <release name> main
 to the .list file
 
+# Add qgis.org repository public key and add key to apt.
+# (see https://qgis.org/en/site/forusers/alldownloads.html#debian-ubuntu)
 then sudo apt-get update
 
 and then,
@@ -60,4 +62,46 @@ import qgis.core
 # vuala
 https://docs.python.org/3/install/index.html#modifying-python-s-search-path
 
+#--------------#
+
+7) Location of key QGIS Files:
+a) QGIS local installation:
+/usr/share/qgis
+b) QGIS algs:
+/usr/share/qgis/python/plugins/processing/algs/qgis
+
+8) find python path of qgis modules via the following:
+a) bash qgis
+b) follow instructions here: https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/intro.html#running-custom-applications
+--> in qgis python console:
+c) import sys; print(sys.version)
+--> yields:
+/usr/lib/python3/dist-packages/qgis
+d) turns out this path is a python3 path (system level python3)
+
+9) Create a python virtual env
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt install python3.7
+
+python3.7 -m venv .pyenv
+
+10) we want to add the python3 system level path of dist-packages/qgis
+to a venv path:
+https://stackoverflow.com/questions/10738919/how-do-i-add-a-path-to-pythonpath-in-virtualenv
+a) go to .pyenv(wherever this is)/pyvenv.cfg    # this is a config file with your basic pointers. Just fyi.
+b) go to .pyenv/lib/python3.7/site-packages  # use nautilus $PWD to get here quickly
+c) add a qgis.pth file to this directory with the following anywhere within:
+/usr/lib/python3/dist-packages/
+d) add a processing.pth file to this directory with the following anywhere within:
+/usr/share/qgis/python/plugins
+d) source into the venv and do the following: (source .pyenv/bin/activate)
+python3.7
+import sys
+sys.path
+# you should see the newly entered .pth placed in site-packages
+import qgis.core
+# vuala
+https://docs.python.org/3/install/index.html#modifying-python-s-search-path
 
