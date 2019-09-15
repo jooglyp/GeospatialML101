@@ -1,5 +1,6 @@
 """The main entrypoints live here."""
 import logging
+import os
 
 import numpy
 import geopandas
@@ -8,12 +9,20 @@ from . import log, model
 
 LOGGER = logging.getLogger(__name__)
 
+__folder__ = os.path.dirname(os.path.realpath(__file__))
+__data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), '..', 'chlor_a'))
+
 
 def main():
     log.init()
 
     # Assignment Simulation:
     LOGGER.info("Loading data from disk...")
+
+    for layer in __data_folder__:
+        print(layer)
+
+    return
 
     with open("/tmp/data.csv", "r") as fileobj:
         raw_data = geopandas.read_csv(fileobj)
