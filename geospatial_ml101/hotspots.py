@@ -7,6 +7,7 @@ import pandas
 import geopandas
 import pysal
 from pysal.explore.esda.getisord import G_Local
+from pysal.explore.esda import Moran_Local
 from shapely.geometry import Point
 import numpy as np
 
@@ -81,7 +82,7 @@ class HotSpots:
         max_dist = max(out_distances)
         return max_dist
 
-    def transform_dataframe(self, hex_grid: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
+    def transform_dataframe(self, hex_grid: geopandas.GeoDataFrame, attribute: str) -> geopandas.GeoDataFrame:
         hex_grid = geopandas.GeoDataFrame(hex_grid, geometry='geometry', crs=self.us_albers_equal_area)
         cg_long = hex_grid.geometry.centroid.x
         cg_lat = hex_grid.geometry.centroid.y
@@ -94,13 +95,54 @@ class HotSpots:
         cg_df['Coordinates'] = list(zip(cg_df.Longitude, cg_df.Latitude))
         cg_df['geometry'] = cg_df['Coordinates'].apply(Point)
         cg_gdf = geopandas.GeoDataFrame(cg_df, geometry='geometry', crs=self.us_albers_equal_area)
-        cg_gdf['winter_mean'] = hex_grid['winter_mean']
+        cg_gdf[attribute] = hex_grid[attribute]
         return cg_gdf
 
-    def create_scores(self):
+    def create_lisa_scores(self, attribute: str):
+
         self.output_dict = {}
         point = self.sample_points.copy()
-        point = self.transform_dataframe(point)
+        point = self.transform_dataframe(point, attribute)
+
+        region = 'atlantic'
+        if len(point) < 200:  # low number of points may have sparse r-trees
+            grid_thresh = self.max_distance_points(point)
+        else:
+            grid_thresh = self.min_threshold_dist_from_points(point)
+
+        # the spatial weights matrix will yield greater agglomerations as the parameter p increases
+        # (see min_threshold_dist_from_points(point)
+        print("pass 2: resetting indices")
+        point = point.reset_index()
+        print("pass 3: calculating inverse distance weights matrix")
+        w = pysal.lib.weights.DistanceBand.from_dataframe(point, threshold=grid_thresh, alpha=-1.5, binary=False)
+        print("pass 4: applying row standardization to inverse distance weights matrix")
+        w.transform = "R"  # row standardized weights (see pysal handbook pg. 171)
+        # GETIS-ORD Z STATISTIC:
+        print("pass 5: extracting {} as y-attribute".format(attribute))
+        heat_scores_array = point.filter([attribute], axis=1)  # note that this score is >= 1
+        # G() will only accept a flattened 1-D array. .Ravel() transforms a dictionary data-structure to np-array [x]
+        # G(i): g = G_Local(heat_scores_array, w, transform='R')
+        print("pass 6: calculating local indicators of spatial association z-scores")
+        g = Moran_Local(heat_scores_array, w, permutations=9999)
+        # Important Note: Large dimensions of w as args to G() will yield a MemoryError during processing.
+        # Solution: will need to process the national footprint's w and heat_score matrices in segments!
+        print("pass 7: outputting results to dictionary")
+        # Append the z-scores back to point
+        point["{}_Z".format(attribute)] = g.z_sim
+        # Assign this iteration of g and heat_scores to the Outputs dictionary
+        self.output_dict[region] = g, heat_scores_array, point
+        if self.hex_template.crs != self.us_albers_equal_area:
+            self.hex_template.crs = self.us_albers_equal_area
+        if point.crs != self.us_albers_equal_area:
+            point.crs = self.us_albers_equal_area
+        hex_scores = geopandas.sjoin(self.hex_template, point, how='left')
+        return hex_scores
+
+    def create_gord_scores(self):
+        self.output_dict = {}
+        point = self.sample_points.copy()
+        point = self.transform_dataframe(point, 'winter_mean')
 
         region = 'atlantic'
         if len(point) < 200:  # low number of points may have sparse r-trees

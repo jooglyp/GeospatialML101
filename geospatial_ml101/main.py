@@ -17,8 +17,29 @@ __data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), 'c
 def data_generation():
     out_dir = os.path.join(__folder__, "..", "outputs")
     data_generator = model.GenerateCovariates(os.path.join(out_dir, "Hex_Values_Points.shp"))
-    hex_point_data = data_generator.generate_covariates()
-    data_generator.generate_hotspots(hex_point_data)
+    high_winter, seasonal_yoys, interannual_variance, seasonal_variance = data_generator.generate_covariates()
+    data_generator.generate_hotspots(high_winter)
+    print(seasonal_variance)
+    print(seasonal_variance.columns)
+    data_generator.generate_spatial_association(seasonal_variance, ['summer_var', 'winter_var'])
+    print(interannual_variance)
+    print(interannual_variance.columns)
+    data_generator.generate_spatial_association(interannual_variance, ['2003_var', '2004_var',
+                      '2005_var', '2006_var', '2007_var', '2008_var', '2009_var', '2010_var', '2011_var',
+                      '2012_var', '2013_var', '2014_var', '2015_var', '2016_var', '2017_var', '2018_var',
+                      '2019_var'])
+    data_generator.generate_spatial_association(seasonal_yoys, ['2019_winter_yoy', '2019_summer_yoy',
+       '2018_winter_yoy', '2018_summer_yoy', '2017_winter_yoy',
+       '2017_summer_yoy', '2016_winter_yoy', '2016_summer_yoy',
+       '2015_winter_yoy', '2015_summer_yoy', '2014_winter_yoy',
+       '2014_summer_yoy', '2013_winter_yoy', '2013_summer_yoy',
+       '2012_winter_yoy', '2012_summer_yoy', '2011_winter_yoy',
+       '2011_summer_yoy', '2010_winter_yoy', '2010_summer_yoy',
+       '2009_winter_yoy', '2009_summer_yoy', '2008_winter_yoy',
+       '2008_summer_yoy', '2007_winter_yoy', '2007_summer_yoy',
+       '2006_winter_yoy', '2006_summer_yoy', '2005_winter_yoy',
+       '2005_summer_yoy', '2004_winter_yoy', '2004_summer_yoy',
+       '2003_winter_yoy', '2003_summer_yoy'])
 
 
 def data_processing():

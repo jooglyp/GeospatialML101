@@ -164,12 +164,24 @@ class GenerateCovariates:
         seasonal_variance.to_file(os.path.join(out_dir, "metrics_seasonal_variance.shp"))
 
         high_winter = seasonal_mean[['polyid', 'winter_mean', 'geometry']]
-        return high_winter
+        return high_winter, seasonal_yoys, interannual_variance, seasonal_variance
 
     def generate_hotspots(self, gdf: geopandas.GeoDataFrame):
         out_dir = os.path.join(__folder__, "..", "outputs")
         hex_dir = os.path.join(__folder__, "..", "outputs", 'HexGrid.shp')
         hotspots = HotSpots(gdf, hex_dir, self.path)
-        scored_points = hotspots.create_scores()
+        scored_points = hotspots.create_gord_scores()
         scored_points = scored_points[['id', 'geometry', 'winter_mean', 'Z_Scores', 'Heat_Scores']]
         scored_points.to_file(os.path.join(out_dir, "winter_mean_hotspots.shp"))  # Answers Decision Making Problem
+
+    def batch_lisa_scoring(self, hotspots: HotSpots, attributes: list, out_dir: str):
+        for attribute in attributes:
+            lisa = hotspots.create_lisa_scores(attribute)
+            lisa = lisa[['id', 'geometry', attribute, "{}_Z".format(attribute)]]
+            lisa.to_file(os.path.join(out_dir, "{}_lisa.shp".format(attribute)))  # Answers Question 4
+
+    def generate_spatial_association(self, gdf: geopandas.GeoDataFrame, attributes: list):
+        out_dir = os.path.join(__folder__, "..", "outputs")
+        hex_dir = os.path.join(__folder__, "..", "outputs", 'HexGrid.shp')
+        hotspots = HotSpots(gdf, hex_dir, self.path)
+        self.batch_lisa_scoring(hotspots, attributes, out_dir)
