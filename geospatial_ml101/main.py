@@ -6,7 +6,7 @@ import pandas
 import geopandas
 from shapely.geometry import Point
 
-from . import log, model, utilities
+from . import log, model, utilities, hexes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -15,6 +15,10 @@ __data_folder__ = os.path.abspath(os.path.join(os.path.dirname( __folder__ ), 'c
 
 
 def data_generation():
+    out_dir = os.path.join(__folder__, "..", "outputs")
+    print(out_dir)
+    data_generator = model.GenerateCovariates(os.path.join(out_dir, "Hex_Values_Points.shp"))
+    hex_point_data = data_generator.generate_covariates()
     return None
 
 
@@ -29,26 +33,46 @@ def data_processing():
     LOGGER.info("Loading data from disk...")
     df_list = []
     geo_files = scan_data()
+    i = 0
     for file in geo_files.items():
+        if i == 3:
+            break
         with open(file[1], "r") as fileobj:
             flattened_dict = flatten_data(fileobj)
             df = pandas.DataFrame(flattened_dict)
             name = "chlor_" + str(file[0].split(".")[0].split("_")[2])
+            print(name)
             df.rename(columns={"value": name}, inplace=True)
             df_list.append(df)
+            i += 1
     geoconstructor = utilities.GeoDataConstructor(df_list)
     concatenated_df = geoconstructor._concatenate_dataframes()
     gdf = geopandas.GeoDataFrame(
         concatenated_df.drop(['latitude', 'longitude'], axis=1),
         crs={'init': 'epsg:4326'},
         geometry=[Point(xy) for xy in zip(concatenated_df.latitude, concatenated_df.longitude)])
-    write_data(gdf)
+
+    del concatenated_df
+    del df_list
+    hex_attribute_points = simplify_data(gdf)
+
+
+def simplify_data(gdf: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
+    out_dir = os.path.join(__folder__, "..", "outputs")
+    # default_hex_size = 40000
+    default_hex_size = 100000  # testing only
+    grid_obj = hexes.Hexify(gdf, out_dir)
+    hex_grid = grid_obj.create_hex_grid(default_hex_size, "atlantic_grid", saveout=True)
+    LOGGER.info(hex_grid)
+    hex_attributes = grid_obj.point_to_avg_hex_scores(gdf, hex_grid)
+    hex_attribute_points = grid_obj.hex_centroid_values(hex_attributes)
+    return hex_attribute_points
 
 
 def write_data(gdf: geopandas.GeoDataFrame):
     """Writes data to directory as shapefile for manual inspection."""
-    out_dir = os.path.join(__folder__, "..", "outputs", "chlor_timeseries.shp")
-    gdf.to_file(out_dir)
+    out_dir = os.path.join(__folder__, "..", "outputs", "chlor_timeseries.gpkg")
+    gdf.to_file(out_dir, driver='GPKG')
 
 
 def scan_data() -> dict:
