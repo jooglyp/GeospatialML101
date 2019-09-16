@@ -49,7 +49,7 @@ class GenerateCovariates:
         seasons = self.unique([i.split("_")[1] for i in unique_seasons])
 
         for season in seasons:
-            relevant_fields = [x for x in unique_seasons if x.endswith(season)]
+            relevant_fields = [x for x in unique_seasons if x.endswith('{}_yoy'.format(season))]
             season_df = hex_data_copy[list(relevant_fields)]
             variance = season_df.var(axis=1)
             new_hex_data['{}_var'.format(season)] = variance
