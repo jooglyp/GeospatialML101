@@ -16,4 +16,4 @@ def init() -> None:
 
     logging.root.addHandler(handler)
 
-    # logging.getLogger("").setLevel(logging.WARNING)
+    logging.getLogger("fiona").setLevel(logging.WARNING)

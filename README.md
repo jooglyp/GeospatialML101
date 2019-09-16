@@ -1,6 +1,9 @@
 # GeospatialML101
 
 ## This repository was written and tested on a Debian Ubuntu Linux machine running PopOS
+```bash
+This repo needs to be run on a computer with at least 32 gigs of ram.
+```
 
 
 ## Linux Libspatialindex binaries prerequisite installation:
