@@ -27,6 +27,14 @@ class GenerateCovariates:
         self.path = hex_path
         self.hex_point_layer = geopandas.GeoDataFrame.from_file(hex_path)
 
+    def get_season(self, day):
+        seasons = {(0, 104): 'winter', (104, 104 + 184): 'summer', (104 + 184, 104 + 184 + 77): 'winter'}
+        for season_range, season in seasons.items():
+            if day in range(*season_range):
+                return season
+
     def generate_covariates(self):
         print(self.hex_point_layer)
+        for i in range(365):
+            print(i, self.get_season(i))
         return None
