@@ -19,11 +19,7 @@ def data_generation():
     data_generator = model.GenerateCovariates(os.path.join(out_dir, "Hex_Values_Points.shp"))
     high_winter, seasonal_yoys, interannual_variance, seasonal_variance = data_generator.generate_covariates()
     data_generator.generate_hotspots(high_winter)
-    print(seasonal_variance)
-    print(seasonal_variance.columns)
     data_generator.generate_spatial_association(seasonal_variance, ['summer_var', 'winter_var'])
-    print(interannual_variance)
-    print(interannual_variance.columns)
     data_generator.generate_spatial_association(interannual_variance, ['2003_var', '2004_var',
                       '2005_var', '2006_var', '2007_var', '2008_var', '2009_var', '2010_var', '2011_var',
                       '2012_var', '2013_var', '2014_var', '2015_var', '2016_var', '2017_var', '2018_var',

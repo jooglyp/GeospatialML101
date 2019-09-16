@@ -52,8 +52,12 @@ class GenerateCovariates:
         for season in seasons:
             relevant_fields = [x for x in unique_seasons if x.endswith('{}'.format(season))]
             season_df = hex_data_copy[list(relevant_fields)]
-            variance = season_df.mean(axis=1)
-            new_hex_data['{}_mean'.format(season)] = variance
+            mean = season_df.mean(axis=1)
+            new_hex_data['{}_mean'.format(season)] = mean
+        relevant_fields = [x for x in unique_seasons]
+        season_df = hex_data_copy[list(relevant_fields)]
+        total_mean = season_df.mean(axis=1)
+        new_hex_data['total_mean'] = total_mean
         print(new_hex_data)
         return new_hex_data
 
@@ -159,6 +163,7 @@ class GenerateCovariates:
 
         out_dir = os.path.join(__folder__, "..", "outputs")
         seasonals.to_file(os.path.join(out_dir, "metrics_seasonals.shp"))
+        seasonal_mean.to_file(os.path.join(out_dir, "metrics_seasonal_avg.shp"))
         seasonal_yoys.to_file(os.path.join(out_dir, "metrics_seasonal_yoy.shp"))
         interannual_variance.to_file(os.path.join(out_dir, "metrics_interannual_variance.shp"))
         seasonal_variance.to_file(os.path.join(out_dir, "metrics_seasonal_variance.shp"))
