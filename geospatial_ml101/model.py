@@ -6,6 +6,7 @@ import os
 import geopandas
 import pandas
 import numpy
+from .hotspots import HotSpots
 
 LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +41,21 @@ class GenerateCovariates:
     def unique(self, list1):
         x = numpy.array(list1)
         return numpy.unique(x)
+
+    def seasonal_average(self, hex_data: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
+        hex_data_copy = hex_data.copy()
+        new_hex_data = hex_data_copy[['polyid', 'geometry']]
+        unique_seasons = hex_data_copy.columns
+        unique_seasons = set(unique_seasons) - set(list(["geometry", "polyid"]))
+        seasons = self.unique([i.split("_")[1] for i in unique_seasons])
+
+        for season in seasons:
+            relevant_fields = [x for x in unique_seasons if x.endswith('{}'.format(season))]
+            season_df = hex_data_copy[list(relevant_fields)]
+            variance = season_df.mean(axis=1)
+            new_hex_data['{}_mean'.format(season)] = variance
+        print(new_hex_data)
+        return new_hex_data
 
     def seasonal_variance(self, hex_data: geopandas.GeoDataFrame) -> geopandas.GeoDataFrame:
         hex_data_copy = hex_data.copy()
@@ -132,7 +148,6 @@ class GenerateCovariates:
                 rename = str(year) + "_" + str(season)
                 new_name_dict[column] = rename
         self.hex_point_layer.rename(columns=new_name_dict, inplace=True)
-        print(self.hex_point_layer)
 
         seasonals = self.average_year_seasons(self.hex_point_layer.copy())  # Answers Question 1
         seasonal_yoys = self.deseasonalization(seasonals.copy())
@@ -140,9 +155,21 @@ class GenerateCovariates:
         seasonal_yoys_bias = self.analyze_bias(seasonal_yoys)  # Answers Question 2
         interannual_variance = self.interannual_variance(seasonal_yoys)  # Answers Question 3
         seasonal_variance = self.seasonal_variance(seasonal_yoys)  # Answers Question 3
+        seasonal_mean = self.seasonal_average(seasonals)
 
         out_dir = os.path.join(__folder__, "..", "outputs")
         seasonals.to_file(os.path.join(out_dir, "metrics_seasonals.shp"))
         seasonal_yoys.to_file(os.path.join(out_dir, "metrics_seasonal_yoy.shp"))
         interannual_variance.to_file(os.path.join(out_dir, "metrics_interannual_variance.shp"))
         seasonal_variance.to_file(os.path.join(out_dir, "metrics_seasonal_variance.shp"))
+
+        high_winter = seasonal_mean[['polyid', 'winter_mean', 'geometry']]
+        return high_winter
+
+    def generate_hotspots(self, gdf: geopandas.GeoDataFrame):
+        out_dir = os.path.join(__folder__, "..", "outputs")
+        hex_dir = os.path.join(__folder__, "..", "outputs", 'HexGrid.shp')
+        hotspots = HotSpots(gdf, hex_dir, self.path)
+        scored_points = hotspots.create_scores()
+        scored_points = scored_points[['id', 'geometry', 'winter_mean', 'Z_Scores', 'Heat_Scores']]
+        scored_points.to_file(os.path.join(out_dir, "winter_mean_hotspots.shp"))  # Answers Decision Making Problem
