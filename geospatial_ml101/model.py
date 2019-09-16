@@ -4,6 +4,7 @@ import logging
 
 import geopandas
 import pandas
+import numpy
 
 LOGGER = logging.getLogger(__name__)
 
@@ -27,14 +28,76 @@ class GenerateCovariates:
         self.path = hex_path
         self.hex_point_layer = geopandas.GeoDataFrame.from_file(hex_path)
 
-    def get_season(self, day):
+    def get_season(self, day) -> str:
         seasons = {(0, 104): 'winter', (104, 104 + 184): 'summer', (104 + 184, 104 + 184 + 77): 'winter'}
         for season_range, season in seasons.items():
             if day in range(*season_range):
                 return season
 
+    def unique(self, list1):
+        x = numpy.array(list1)
+        return numpy.unique(x)
+
+    def deseasonalization(self, hex_data: geopandas.GeoDataFrame):
+        deseasonalized = hex_data.copy()
+        deseasonalized = deseasonalized[['polyid', 'geometry']]
+        year_seasons = set(list(hex_data.columns.sort_values())) - set(list(["geometry", "polyid"]))
+        year_seasons = list(year_seasons)
+        year_seasons.sort(reverse=True)
+
+        for season in year_seasons:
+            try:
+                season_ = season.split("_")[1]
+                current_year = int(season.split("_")[0])
+                last_year = int(season.split("_")[0]) - 1
+                deseasonalized['{}_{}_yoy'.format(str(current_year), season_)] = \
+                    (hex_data['{}_{}'.format(str(current_year), season_)] -
+                     hex_data['{}_{}'.format(str(last_year), season_)]) / \
+                    hex_data['{}_{}'.format(str(last_year), season_)]
+            except:
+                continue
+        return deseasonalized
+
+    def average_year_seasons(self, hex_data: geopandas.GeoDataFrame):
+        hex_data_copy = hex_data.copy()
+        new_hex_data = hex_data_copy[['polyid', 'geometry']]
+        unique_seasons = self.unique(hex_data_copy.columns)
+        unique_seasons = set(unique_seasons) - set(list(["geometry", "polyid"]))
+        for year_season in unique_seasons:
+            df = hex_data_copy.copy(deep=True)[year_season]
+            if type(df) == pandas.Series:
+                new_hex_data[year_season] = df
+                continue
+            df['polyid'] = hex_data_copy['polyid']
+            df = df.set_index(['polyid'])
+            df = df.groupby(by=df.columns, axis=1).mean()
+            df = df.reset_index()
+            new_hex_data[year_season] = df[year_season]
+        return new_hex_data
+
+    def coerce_to_numeric(self, hex_data: geopandas.GeoDataFrame):
+        for column in self.hex_point_layer.columns:
+            if column[-3:] == 'avg':
+                series = self.hex_point_layer[column]
+                self.hex_point_layer[column] = pandas.to_numeric(series)
+        return self.hex_point_layer
+
     def generate_covariates(self):
         print(self.hex_point_layer)
-        for i in range(365):
-            print(i, self.get_season(i))
+        self.hex_point_layer = self.coerce_to_numeric(self.hex_point_layer)
+
+        new_name_dict = {}
+        for column in self.hex_point_layer.columns:
+            if column[-3:] == 'avg':
+                year = column[0:4]
+                day = column[4:7]
+                season = self.get_season(int(day))
+                rename = str(year) + "_" + str(season)
+                new_name_dict[column] = rename
+        self.hex_point_layer.rename(columns=new_name_dict, inplace=True)
+        print(self.hex_point_layer)
+
+        seasonals = self.average_year_seasons(self.hex_point_layer)
+        seasonal_yoys = self.deseasonalization(self.hex_point_layer)
+
         return None
