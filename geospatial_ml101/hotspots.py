@@ -115,6 +115,7 @@ class HotSpots:
         print("pass 2: resetting indices")
         point = point.reset_index()
         print("pass 3: calculating inverse distance weights matrix")
+        point = point.dropna()  # This is very important as sparse matrices break these algorithms.
         w = pysal.lib.weights.DistanceBand.from_dataframe(point, threshold=grid_thresh, alpha=-1.5, binary=False)
         print("pass 4: applying row standardization to inverse distance weights matrix")
         w.transform = "R"  # row standardized weights (see pysal handbook pg. 171)
@@ -155,6 +156,7 @@ class HotSpots:
         print("pass 2: resetting indices")
         point = point.reset_index()
         print("pass 3: calculating inverse distance weights matrix")
+        point = point.dropna()  # This is very important as sparse matrices break these algorithms.
         w = pysal.lib.weights.DistanceBand.from_dataframe(point, threshold=grid_thresh, alpha=-1.5, binary=False)
         print("pass 4: applying row standardization to inverse distance weights matrix")
         w.transform = "R"  # row standardized weights (see pysal handbook pg. 171)
@@ -164,12 +166,13 @@ class HotSpots:
         # G() will only accept a flattened 1-D array. .Ravel() transforms a dictionary data-structure to np-array [x]
         # G(i): g = G_Local(heat_scores_array, w, transform='R')
         print("pass 6: calculating getis-ord z-scores")
-        g = G_Local(heat_scores_array, w, transform='R', star=True)
+        g = G_Local(heat_scores_array.dropna(), w, transform='R', star=True)
         # Important Note: Large dimensions of w as args to G() will yield a MemoryError during processing.
         # Solution: will need to process the national footprint's w and heat_score matrices in segments!
         print("pass 7: outputting results to dictionary")
         # Append the z-scores and heat_scores back to point
         point["Z_Scores"] = g.z_sim
+        print(point['Z_Scores'])
         point["Heat_Scores"] = heat_scores_array
         # Assign this iteration of g and heat_scores to the Outputs dictionary
         self.output_dict[region] = g, heat_scores_array, point

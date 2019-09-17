@@ -157,6 +157,8 @@ class GenerateCovariates:
         seasonal_yoys = self.deseasonalization(seasonals.copy())
         seasonal_bias = self.analyze_bias(seasonals)  # Answers Question 2
         seasonal_yoys_bias = self.analyze_bias(seasonal_yoys)  # Answers Question 2
+        print(seasonal_bias.sort_index())
+        print(seasonal_yoys_bias.sort_index())
         interannual_variance = self.interannual_variance(seasonal_yoys)  # Answers Question 3
         seasonal_variance = self.seasonal_variance(seasonal_yoys)  # Answers Question 3
         seasonal_mean = self.seasonal_average(seasonals)

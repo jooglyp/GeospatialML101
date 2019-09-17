@@ -70,3 +70,13 @@ geospatial_ml101/chlor_a
 .pyenv/bin/data_processing
 .pyenv/bin/data_generation
 ```
+
+## Generate Study Areas with:
+```bash
+# For example:
+path = '/home/doktorbold/PycharmProjects/geospatial_ml101/polygon_txt.csv'
+stuff = geopandas.read_file(path)
+stuff.crs = {'init' :'epsg:4326'}
+stuff.to_crs(us_albers_equal_area)
+stuff.to_file('/home/doktorbold/PycharmProjects/geospatial_ml101/polygons.shp')
+```
