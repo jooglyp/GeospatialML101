@@ -49,10 +49,7 @@ def data_processing():
     LOGGER.info("Loading data from disk...")
     df_list = []
     geo_files = scan_data()
-    i = 0
     for file in geo_files.items():
-        if i == 3:
-            break
         with open(file[1], "r") as fileobj:
             flattened_dict = flatten_data(fileobj)
             df = pandas.DataFrame(flattened_dict)
@@ -60,7 +57,6 @@ def data_processing():
             print(name)
             df.rename(columns={"value": name}, inplace=True)
             df_list.append(df)
-            i += 1
     geoconstructor = utilities.GeoDataConstructor(df_list)
     concatenated_df = geoconstructor._concatenate_dataframes()
     gdf = geopandas.GeoDataFrame(
