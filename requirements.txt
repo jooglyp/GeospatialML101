@@ -38,7 +38,7 @@ numpy==1.17.2
 packaging==19.1           # via dask-ml
 palettable==3.3.0         # via pysal
 pandas==0.25.1
-psutil==5.6.3             # via distributed
+psutil==5.6.6             # via distributed
 pyparsing==2.4.2          # via matplotlib, packaging
 pyproj==2.3.1             # via geopandas
 pysal==2.1.0
