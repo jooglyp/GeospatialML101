@@ -34,7 +34,7 @@ msgpack==0.6.1            # via distributed
 multipledispatch==0.6.0   # via dask-glm, dask-ml
 munch==2.3.2              # via fiona
 numba==0.45.1             # via dask-ml
-numpy==1.17.2
+numpy==1.22.0
 packaging==19.1           # via dask-ml
 palettable==3.3.0         # via pysal
 pandas==0.25.1
