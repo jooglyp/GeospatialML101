@@ -17,7 +17,7 @@ dask-xgboost==0.1.7
 dask[array]==2.4.0
 deprecated==1.2.6         # via pysal
 descartes==1.1.0          # via pysal
-distributed==2.4.0        # via dask-ml, dask-xgboost
+distributed==2021.10.0        # via dask-ml, dask-xgboost
 fiona==1.8.6              # via geopandas
 fsspec==0.4.4
 geographiclib==1.49       # via geopy
